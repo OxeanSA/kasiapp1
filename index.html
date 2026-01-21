@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasi power</title>
+    <title>Pulse</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -14,7 +14,6 @@
     <style>
         :root {
             --bs-body-bg: #000000;
-            --bs-body-color: #ffffff;
             --accent-color: #00d2ff;
         }
 
@@ -23,23 +22,24 @@
             background-color: #000; color: #fff; overflow: hidden;
         }
 
-        /* Full Screen Map Container */
+        /* Map Container */
         #map-view {
             position: absolute; top: 0; left: 0; width: 100%;
             height: calc(100% - 70px); z-index: 1;
         }
 
-        /* Dynamic Content Overlay - Forced White Text */
+        /* Content Overlay - Forced White Text on Black */
         #content-view {
             position: absolute; top: 0; left: 0; width: 100%;
             height: calc(100% - 70px); background: #000;
             z-index: 2000; display: none; overflow-y: auto;
-            color: #ffffff !important;
         }
 
-        #view-body, #view-title { color: #ffffff !important; }
+        #view-title { color: var(--accent-color) !important; font-weight: 800; border-bottom: 2px solid #222; padding-bottom: 10px; }
+        .card { background: #111 !important; border: 1px solid #333 !important; color: #fff !important; }
+        .card-title { color: var(--accent-color) !important; }
 
-        /* Floating Contribution Button */
+        /* UI Elements */
         #upload-btn {
             position: fixed; bottom: 90px; right: 20px;
             width: 65px; height: 65px; border-radius: 50%;
@@ -48,7 +48,6 @@
             box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
         }
 
-        /* Bottom Navigation Bar */
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 70px;
             background: #0a0a0a; border-top: 2px solid #222;
@@ -57,33 +56,28 @@
         }
 
         .nav-link-custom {
-            color: #bbbbbb; text-decoration: none; font-size: 11px;
+            color: #888; text-decoration: none; font-size: 11px;
             display: flex; flex-direction: column; align-items: center;
-            border: none; background: none; transition: 0.2s;
+            border: none; background: none;
         }
 
         .nav-link-custom.active { color: var(--accent-color); font-weight: bold; }
         .nav-link-custom i { font-size: 24px; margin-bottom: 2px; }
 
-        /* Card Styling for Visibility */
-        .card { background: #161616 !important; border: 1px solid #333 !important; color: white !important; }
-        .card-title { color: var(--accent-color) !important; font-weight: bold; }
-        .text-muted { color: #aaaaaa !important; }
-
-        /* Cesium InfoBox Override */
-        .cesium-infoBox { background: #1a1a1a !important; color: white !important; }
-        .cesium-infoBox-title { color: var(--accent-color) !important; }
-        .cesium-infoBox-description { color: white !important; }
+        #safety-toast {
+            position: fixed; top: 20px; left: 50%;
+            transform: translateX(-50%); z-index: 5000;
+            min-width: 300px; display: none;
+        }
     </style>
 </head>
 <body class="bg-black text-white">
 
-    <div id="safety-toast" class="alert alert-danger shadow-lg text-center fw-bold border-2 position-fixed" 
-         style="top: 20px; left: 50%; transform: translateX(-50%); z-index: 5000; min-width: 300px; display: none;" role="alert">
-        <i class="fas fa-triangle-exclamation me-2 text-white"></i> 9781 HAZARD NEARBY
+    <div id="safety-toast" class="alert alert-danger shadow-lg text-center fw-bold border-2" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i> 9781 HAZARD NEARBY
     </div>
 
-    <button id="upload-btn" class="btn btn-info text-dark fw-bold" onclick="openContributionMenu()">
+    <button id="upload-btn" class="btn btn-info text-dark fw-bold shadow" onclick="openContributionMenu()">
         <i class="fas fa-video"></i>
     </button>
 
@@ -93,9 +87,8 @@
 
     <div id="content-view" class="p-3">
         <div class="container-fluid">
-            <h2 id="view-title" class="mb-4 text-info fw-bold border-bottom border-secondary pb-2">3D Map</h2>
-            <div id="view-body" class="row g-3">
-                </div>
+            <h2 id="view-title" class="mb-4">3D Map</h2>
+            <div id="view-body" class="row g-3"></div>
         </div>
     </div>
 
@@ -122,21 +115,38 @@
         const BOTSHABELO = { lon: 26.7111, lat: -29.2333 };
         let appData = [];
 
-        // --- 1. INITIALIZE CESIUM WITH ZOOM CONSTRAINTS ---
+        // --- 1. INITIALIZE CESIUM (FIXED FOR VISIBILITY) ---
         const viewer = new Cesium.Viewer('cesiumContainer', {
+            // Use OpenStreetMap to ensure the ground is visible and not "black space"
+            imageryProvider: new Cesium.OpenStreetMapImageryProvider({
+                url : 'https://a.tile.openstreetmap.org/'
+            }),
             terrainProvider: Cesium.createWorldTerrain(),
-            animation: false, timeline: false, baseLayerPicker: false,
-            geocoder: false, infoBox: true,
-            sceneModePicker: false, navigationHelpButton: false
+            skyBox: false, // Disables the stars and space background
+            skyAtmosphere: false, // Disables the hazy atmosphere that can look like sky
+            animation: false, 
+            timeline: false, 
+            baseLayerPicker: false,
+            geocoder: false, 
+            infoBox: true,
+            sceneModePicker: false
         });
 
-        // LOCK ZOOM LEVELS
-        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 100; // Allow close zoom in (100 meters)
-        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 25000; // Limit zoom out to 25km (keeps town in view)
+        // Background color of the container to prevent seeing "stars"
+        viewer.scene.backgroundColor = Cesium.Color.BLACK;
 
+        // Constraint Zoom: Allow zoom in, limit zoom out to keep town in focus
+        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 150; 
+        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 15000; 
+
+        // Set initial camera to Botshabelo 9781
         viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(BOTSHABELO.lon, BOTSHABELO.lat, 2000),
-            orientation: { pitch: Cesium.Math.toRadians(-35.0) }
+            destination: Cesium.Cartesian3.fromDegrees(BOTSHABELO.lon, BOTSHABELO.lat, 2500),
+            orientation: { 
+                heading: Cesium.Math.toRadians(0.0),
+                pitch: Cesium.Math.toRadians(-45.0), // Look down at the town
+                roll: 0.0 
+            }
         });
 
         // --- 2. DYNAMIC PINS ---
@@ -148,7 +158,6 @@
 
                 appData.forEach(item => {
                     const pos = Cesium.Cartesian3.fromDegrees(item.lon, item.lat);
-                    
                     viewer.entities.add({
                         id: `pin-${item._id}`,
                         position: pos,
@@ -157,10 +166,10 @@
                             width: 32, height: 32, verticalOrigin: Cesium.VerticalOrigin.BOTTOM
                         },
                         description: `
-                            <div style="background: #111; color: white; padding: 10px; border-radius: 5px;">
-                                <h5 style="color: #00d2ff;">${item.title}</h5>
+                            <div style="background:#000; color:#fff; padding:10px; border-radius:5px; border:1px solid #333;">
+                                <h5 style="color:#00d2ff;">${item.title}</h5>
                                 <p>${item.content}</p>
-                                ${item.media_url ? `<video width="100%" autoplay loop muted class="rounded"><source src="${item.media_url}"></video>` : ''}
+                                ${item.media_url ? `<video width="100%" autoplay loop muted class="rounded mt-2"><source src="${item.media_url}"></video>` : ''}
                             </div>`
                     });
 
@@ -176,7 +185,7 @@
                         });
                     }
                 });
-            } catch (err) { console.error("Data error", err); }
+            } catch (err) { console.error("Sync Error", err); }
         }
 
         // --- 3. DYNAMIC NAVIGATION ---
@@ -200,7 +209,7 @@
             mapView.style.display = 'none';
             contentView.style.display = 'block';
             uploadBtn.style.display = 'none';
-            viewTitle.innerText = tab.charAt(0).toUpperCase() + tab.slice(1);
+            viewTitle.innerText = tab.toUpperCase();
             viewBody.innerHTML = '';
 
             const filtered = appData.filter(i => {
@@ -212,32 +221,32 @@
 
             if (tab === 'profile') {
                 viewBody.innerHTML = `
-                    <div class="col-12">
-                        <div class="card p-4 text-center">
-                            <i class="fas fa-user-shield fa-4x mb-3 text-info"></i>
-                            <h3 class="text-white">Botshabelo Resident</h3>
-                            <p class="text-muted">Verified Status: 9781 Community Member</p>
-                            <button class="btn btn-info text-dark mt-3 w-100 fw-bold">Update Preferences</button>
+                    <div class="col-12 text-center py-4">
+                        <div class="card p-4 shadow">
+                            <i class="fas fa-user-circle fa-5x text-info mb-3"></i>
+                            <h2 class="text-white">Botshabelo Resident</h2>
+                            <p class="text-muted">ID: 9781-User-Live</p>
+                            <button class="btn btn-outline-info w-100">Profile Settings</button>
                         </div>
                     </div>`;
                 return;
             }
 
             if (filtered.length === 0) {
-                viewBody.innerHTML = `<div class="col-12 text-center text-muted py-5 fs-4">No entries found in 9781 Botshabelo.</div>`;
+                viewBody.innerHTML = `<div class="col-12 text-center text-muted py-5">No ${tab} in Botshabelo 9781.</div>`;
             } else {
                 filtered.forEach(i => {
                     const col = document.createElement('div');
-                    col.className = 'col-12 mb-3';
+                    col.className = 'col-12';
                     col.innerHTML = `
-                        <div class="card h-100">
+                        <div class="card mb-3">
                             <div class="card-body">
                                 <h5 class="card-title">${i.title}</h5>
-                                <p class="card-text text-white">${i.content}</p>
-                                ${i.media_url ? `<video class="w-100 rounded mb-2" autoplay loop muted><source src="${i.media_url}"></video>` : ''}
-                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                <p class="card-text">${i.content}</p>
+                                ${i.media_url ? `<video class="w-100 rounded" autoplay loop muted><source src="${i.media_url}"></video>` : ''}
+                                <div class="mt-3 d-flex justify-content-between">
                                     <span class="badge bg-info text-dark">${i.type}</span>
-                                    <small class="text-muted">${new Date(i.timestamp).toLocaleString()}</small>
+                                    <small class="text-muted">${new Date(i.timestamp).toLocaleDateString()}</small>
                                 </div>
                             </div>
                         </div>`;
@@ -246,7 +255,7 @@
             }
         }
 
-        // --- 4. UPLOAD LOGIC ---
+        // --- 4. CONTRIBUTION ---
         function openContributionMenu() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -266,33 +275,33 @@
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({
-                                    title: "Street View Check",
-                                    content: "New visual update from the street",
+                                    title: "Live Street View",
+                                    content: "User uploaded street update",
                                     lon: pos.coords.longitude, lat: pos.coords.latitude,
                                     media_url: cdnData.url, type: 'street_view'
                                 })
                             });
                             loadPins();
-                            alert("3D Visual Posted!");
+                            alert("3D Video Contributed!");
                         });
                     }
-                } catch (err) { alert("Network Error"); }
+                } catch (err) { alert("Upload Failed"); }
             };
             input.click();
         }
 
-        // --- 5. INITIALIZE ---
+        // --- 5. RUN ---
         loadPins();
-        
+
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(pos => {
-                const alertEl = document.getElementById('safety-toast');
-                const danger = appData.find(item => {
-                    if (item.type !== 'alert') return false;
-                    const d = calculateDist(pos.coords.longitude, pos.coords.latitude, item.lon, item.lat) * 1000;
-                    return d <= (item.radius || 300);
+                const toast = document.getElementById('safety-toast');
+                const danger = appData.find(i => {
+                    if (i.type !== 'alert') return false;
+                    const d = calculateDist(pos.coords.longitude, pos.coords.latitude, i.lon, i.lat) * 1000;
+                    return d <= (i.radius || 300);
                 });
-                alertEl.style.display = danger ? 'block' : 'none';
+                toast.style.display = danger ? 'block' : 'none';
             });
         }
 
