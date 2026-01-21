@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kasi Power</title>
+    <title>Kasi power</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,9 +12,15 @@
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
     <style>
+        :root {
+            --bs-body-bg: #000000;
+            --bs-body-color: #ffffff;
+            --accent-color: #00d2ff;
+        }
+
         body, html {
             margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: #000; overflow: hidden;
+            background-color: #000; color: #fff; overflow: hidden;
         }
 
         /* Full Screen Map Container */
@@ -23,56 +29,61 @@
             height: calc(100% - 70px); z-index: 1;
         }
 
-        /* Dynamic Content Overlay */
+        /* Dynamic Content Overlay - Forced White Text */
         #content-view {
             position: absolute; top: 0; left: 0; width: 100%;
             height: calc(100% - 70px); background: #000;
             z-index: 2000; display: none; overflow-y: auto;
+            color: #ffffff !important;
         }
+
+        #view-body, #view-title { color: #ffffff !important; }
 
         /* Floating Contribution Button */
         #upload-btn {
             position: fixed; bottom: 90px; right: 20px;
-            width: 60px; height: 60px; border-radius: 50%;
+            width: 65px; height: 65px; border-radius: 50%;
             z-index: 3000; display: flex; align-items: center;
-            justify-content: center; font-size: 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            justify-content: center; font-size: 26px;
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
         }
 
         /* Bottom Navigation Bar */
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 70px;
-            background: #111; border-top: 1px solid #333;
+            background: #0a0a0a; border-top: 2px solid #222;
             display: flex; justify-content: space-around;
             align-items: center; z-index: 4000;
         }
 
         .nav-link-custom {
-            color: #777; text-decoration: none; font-size: 10px;
+            color: #bbbbbb; text-decoration: none; font-size: 11px;
             display: flex; flex-direction: column; align-items: center;
             border: none; background: none; transition: 0.2s;
         }
 
-        .nav-link-custom.active { color: #0d6efd; }
-        .nav-link-custom i { font-size: 22px; margin-bottom: 2px; }
+        .nav-link-custom.active { color: var(--accent-color); font-weight: bold; }
+        .nav-link-custom i { font-size: 24px; margin-bottom: 2px; }
 
-        /* Safety Alert Toast */
-        #safety-toast {
-            position: fixed; top: 20px; left: 50%;
-            transform: translateX(-50%); z-index: 5000;
-            min-width: 280px; display: none;
-        }
+        /* Card Styling for Visibility */
+        .card { background: #161616 !important; border: 1px solid #333 !important; color: white !important; }
+        .card-title { color: var(--accent-color) !important; font-weight: bold; }
+        .text-muted { color: #aaaaaa !important; }
 
-        .cesium-infoBox { background: white !important; border-radius: 8px !important; }
+        /* Cesium InfoBox Override */
+        .cesium-infoBox { background: #1a1a1a !important; color: white !important; }
+        .cesium-infoBox-title { color: var(--accent-color) !important; }
+        .cesium-infoBox-description { color: white !important; }
     </style>
 </head>
-<body class="text-light">
+<body class="bg-black text-white">
 
-    <div id="safety-toast" class="alert alert-danger shadow-lg text-center fw-bold border-2" role="alert">
-        <i class="fas fa-triangle-exclamation me-2"></i> 9781 HAZARD NEARBY
+    <div id="safety-toast" class="alert alert-danger shadow-lg text-center fw-bold border-2 position-fixed" 
+         style="top: 20px; left: 50%; transform: translateX(-50%); z-index: 5000; min-width: 300px; display: none;" role="alert">
+        <i class="fas fa-triangle-exclamation me-2 text-white"></i> 9781 HAZARD NEARBY
     </div>
 
-    <button id="upload-btn" class="btn btn-primary" onclick="openContributionMenu()">
+    <button id="upload-btn" class="btn btn-info text-dark fw-bold" onclick="openContributionMenu()">
         <i class="fas fa-video"></i>
     </button>
 
@@ -82,7 +93,7 @@
 
     <div id="content-view" class="p-3">
         <div class="container-fluid">
-            <h2 id="view-title" class="mb-4 text-primary fw-bold border-bottom pb-2">Home</h2>
+            <h2 id="view-title" class="mb-4 text-info fw-bold border-bottom border-secondary pb-2">3D Map</h2>
             <div id="view-body" class="row g-3">
                 </div>
         </div>
@@ -90,7 +101,7 @@
 
     <nav class="bottom-nav">
         <button id="nav-home" class="nav-link-custom active" onclick="navigate('home')">
-            <i class="fas fa-mountain-city"></i><span>3D Map</span>
+            <i class="fas fa-cube"></i><span>Home</span>
         </button>
         <button id="nav-posts" class="nav-link-custom" onclick="navigate('posts')">
             <i class="fas fa-layer-group"></i><span>Feed</span>
@@ -99,7 +110,7 @@
             <i class="fas fa-calendar-star"></i><span>Events</span>
         </button>
         <button id="nav-updates" class="nav-link-custom" onclick="navigate('updates')">
-            <i class="fas fa-bullhorn"></i><span>Alerts</span>
+            <i class="fas fa-bullhorn"></i><span>Updates</span>
         </button>
         <button id="nav-profile" class="nav-link-custom" onclick="navigate('profile')">
             <i class="fas fa-user-circle"></i><span>Profile</span>
@@ -111,62 +122,64 @@
         const BOTSHABELO = { lon: 26.7111, lat: -29.2333 };
         let appData = [];
 
-        // --- 1. INITIALIZE CESIUM ---
+        // --- 1. INITIALIZE CESIUM WITH ZOOM CONSTRAINTS ---
         const viewer = new Cesium.Viewer('cesiumContainer', {
             terrainProvider: Cesium.createWorldTerrain(),
             animation: false, timeline: false, baseLayerPicker: false,
-            geocoder: false, infoBox: true
+            geocoder: false, infoBox: true,
+            sceneModePicker: false, navigationHelpButton: false
         });
+
+        // LOCK ZOOM LEVELS
+        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 100; // Allow close zoom in (100 meters)
+        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 25000; // Limit zoom out to 25km (keeps town in view)
 
         viewer.camera.setView({
             destination: Cesium.Cartesian3.fromDegrees(BOTSHABELO.lon, BOTSHABELO.lat, 2000),
             orientation: { pitch: Cesium.Math.toRadians(-35.0) }
         });
 
-        // --- 2. DYNAMIC PINS & DATA LOADING ---
+        // --- 2. DYNAMIC PINS ---
         async function loadPins() {
             try {
                 const res = await fetch(`${API_BASE}/posts`);
                 appData = await res.json();
-
                 viewer.entities.removeAll();
 
                 appData.forEach(item => {
                     const pos = Cesium.Cartesian3.fromDegrees(item.lon, item.lat);
                     
-                    // Pin Marker
                     viewer.entities.add({
                         id: `pin-${item._id}`,
                         position: pos,
                         billboard: {
-                            image: item.type === 'alert' ? 'https://img.icons8.com/color/48/marker-storm.png' : 'https://img.icons8.com/color/48/marker.png',
+                            image: item.type === 'alert' ? 'https://img.icons8.com/color/48/error.png' : 'https://img.icons8.com/color/48/marker.png',
                             width: 32, height: 32, verticalOrigin: Cesium.VerticalOrigin.BOTTOM
                         },
                         description: `
-                            <div class="p-2 text-dark">
-                                <h5 class="fw-bold">${item.title}</h5>
+                            <div style="background: #111; color: white; padding: 10px; border-radius: 5px;">
+                                <h5 style="color: #00d2ff;">${item.title}</h5>
                                 <p>${item.content}</p>
-                                ${item.media_url ? `<video width="100%" class="rounded" controls autoplay loop muted><source src="${item.media_url}" type="video/mp4"></video>` : ''}
+                                ${item.media_url ? `<video width="100%" autoplay loop muted class="rounded"><source src="${item.media_url}"></video>` : ''}
                             </div>`
                     });
 
-                    // Alert Radius
                     if (item.type === 'alert' && item.radius) {
                         viewer.entities.add({
                             position: pos,
                             ellipse: {
                                 semiMinorAxis: parseFloat(item.radius),
                                 semiMajorAxis: parseFloat(item.radius),
-                                material: Cesium.Color.RED.withAlpha(0.2),
+                                material: Cesium.Color.RED.withAlpha(0.3),
                                 outline: true, outlineColor: Cesium.Color.RED
                             }
                         });
                     }
                 });
-            } catch (err) { console.error("Data fetch error", err); }
+            } catch (err) { console.error("Data error", err); }
         }
 
-        // --- 3. DYNAMIC NAVIGATION (FULLY EXPANDED) ---
+        // --- 3. DYNAMIC NAVIGATION ---
         function navigate(tab) {
             const mapView = document.getElementById('map-view');
             const contentView = document.getElementById('content-view');
@@ -190,20 +203,6 @@
             viewTitle.innerText = tab.charAt(0).toUpperCase() + tab.slice(1);
             viewBody.innerHTML = '';
 
-            if (tab === 'profile') {
-                viewBody.innerHTML = `
-                    <div class="col-12">
-                        <div class="card bg-dark border-secondary p-4 text-center">
-                            <i class="fas fa-user-circle fa-5x mb-3 text-primary"></i>
-                            <h3>Botshabelo User</h3>
-                            <p class="text-muted">Postal Code: 9781 | Free State</p>
-                            <button class="btn btn-outline-primary w-100 mt-3">Edit Profile</button>
-                            <button class="btn btn-outline-danger w-100 mt-2">Log Out</button>
-                        </div>
-                    </div>`;
-                return;
-            }
-
             const filtered = appData.filter(i => {
                 if (tab === 'posts') return i.type === 'post' || i.type === 'street_view';
                 if (tab === 'events') return i.type === 'event';
@@ -211,21 +210,34 @@
                 return false;
             });
 
+            if (tab === 'profile') {
+                viewBody.innerHTML = `
+                    <div class="col-12">
+                        <div class="card p-4 text-center">
+                            <i class="fas fa-user-shield fa-4x mb-3 text-info"></i>
+                            <h3 class="text-white">Botshabelo Resident</h3>
+                            <p class="text-muted">Verified Status: 9781 Community Member</p>
+                            <button class="btn btn-info text-dark mt-3 w-100 fw-bold">Update Preferences</button>
+                        </div>
+                    </div>`;
+                return;
+            }
+
             if (filtered.length === 0) {
-                viewBody.innerHTML = `<div class="col-12 text-center text-muted py-5">No ${tab} found in Botshabelo 9781.</div>`;
+                viewBody.innerHTML = `<div class="col-12 text-center text-muted py-5 fs-4">No entries found in 9781 Botshabelo.</div>`;
             } else {
                 filtered.forEach(i => {
                     const col = document.createElement('div');
-                    col.className = 'col-12 col-md-6';
+                    col.className = 'col-12 mb-3';
                     col.innerHTML = `
-                        <div class="card bg-dark border-secondary h-100 ${i.type === 'alert' ? 'border-danger' : ''}">
+                        <div class="card h-100">
                             <div class="card-body">
-                                <h5 class="card-title text-primary">${i.title}</h5>
-                                <p class="card-text">${i.content}</p>
+                                <h5 class="card-title">${i.title}</h5>
+                                <p class="card-text text-white">${i.content}</p>
                                 ${i.media_url ? `<video class="w-100 rounded mb-2" autoplay loop muted><source src="${i.media_url}"></video>` : ''}
                                 <div class="d-flex justify-content-between align-items-center mt-3">
-                                    <span class="badge bg-secondary">${i.type}</span>
-                                    <small class="text-muted">${new Date(i.timestamp).toLocaleDateString()}</small>
+                                    <span class="badge bg-info text-dark">${i.type}</span>
+                                    <small class="text-muted">${new Date(i.timestamp).toLocaleString()}</small>
                                 </div>
                             </div>
                         </div>`;
@@ -234,7 +246,7 @@
             }
         }
 
-        // --- 4. STREET VIEW UPLOAD LOGIC ---
+        // --- 4. UPLOAD LOGIC ---
         function openContributionMenu() {
             const input = document.createElement('input');
             input.type = 'file';
@@ -243,33 +255,28 @@
             input.onchange = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
-
                 const fd = new FormData();
                 fd.append('file', file);
-
                 try {
                     const cdnRes = await fetch("https://cdn.oxeansa.co.za/upload", { method: 'POST', body: fd });
                     const cdnData = await cdnRes.json();
-
                     if (cdnData.url) {
                         navigator.geolocation.getCurrentPosition(async (pos) => {
                             await fetch(`${API_BASE}/posts`, {
                                 method: 'POST',
                                 headers: {'Content-Type': 'application/json'},
                                 body: JSON.stringify({
-                                    title: "Street View Video",
-                                    content: "New community upload via 3D view",
-                                    lon: pos.coords.longitude,
-                                    lat: pos.coords.latitude,
-                                    media_url: cdnData.url,
-                                    type: 'street_view'
+                                    title: "Street View Check",
+                                    content: "New visual update from the street",
+                                    lon: pos.coords.longitude, lat: pos.coords.latitude,
+                                    media_url: cdnData.url, type: 'street_view'
                                 })
                             });
                             loadPins();
-                            alert("3D Contribution live!");
+                            alert("3D Visual Posted!");
                         });
                     }
-                } catch (err) { alert("Upload failed"); }
+                } catch (err) { alert("Network Error"); }
             };
             input.click();
         }
@@ -277,7 +284,6 @@
         // --- 5. INITIALIZE ---
         loadPins();
         
-        // Safety Proximity Monitor
         if (navigator.geolocation) {
             navigator.geolocation.watchPosition(pos => {
                 const alertEl = document.getElementById('safety-toast');
