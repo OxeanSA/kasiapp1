@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pulse</title>
+    <title>SA Community Map | Testing Mode</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -12,144 +12,102 @@
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
     <style>
-        :root {
-            --bs-body-bg: #000000;
-            --accent-color: #00d2ff;
-        }
-
-        body, html {
-            margin: 0; padding: 0; height: 100%; width: 100%;
-            background-color: #000; color: #fff; overflow: hidden;
-        }
-
-        /* Map Container */
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #111; overflow: hidden; color: white; }
+        
+        /* Map Container - Gray background shows it's active even if tiles are slow */
         #map-view {
             position: absolute; top: 0; left: 0; width: 100%;
-            height: calc(100% - 70px); z-index: 1;
+            height: calc(100% - 70px); z-index: 1; background: #222; 
         }
 
-        /* Content Overlay - Forced White Text on Black */
         #content-view {
             position: absolute; top: 0; left: 0; width: 100%;
             height: calc(100% - 70px); background: #000;
-            z-index: 2000; display: none; overflow-y: auto;
-        }
-
-        #view-title { color: var(--accent-color) !important; font-weight: 800; border-bottom: 2px solid #222; padding-bottom: 10px; }
-        .card { background: #111 !important; border: 1px solid #333 !important; color: #fff !important; }
-        .card-title { color: var(--accent-color) !important; }
-
-        /* UI Elements */
-        #upload-btn {
-            position: fixed; bottom: 90px; right: 20px;
-            width: 65px; height: 65px; border-radius: 50%;
-            z-index: 3000; display: flex; align-items: center;
-            justify-content: center; font-size: 26px;
-            box-shadow: 0 0 20px rgba(0, 210, 255, 0.6);
+            z-index: 2000; display: none; overflow-y: auto; padding: 20px;
         }
 
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 70px;
-            background: #0a0a0a; border-top: 2px solid #222;
+            background: #000; border-top: 2px solid #333;
             display: flex; justify-content: space-around;
             align-items: center; z-index: 4000;
         }
 
         .nav-link-custom {
-            color: #888; text-decoration: none; font-size: 11px;
+            color: #999; text-decoration: none; font-size: 11px;
             display: flex; flex-direction: column; align-items: center;
-            border: none; background: none;
+            border: none; background: none; cursor: pointer;
         }
 
-        .nav-link-custom.active { color: var(--accent-color); font-weight: bold; }
+        .nav-link-custom.active { color: #00d2ff; font-weight: bold; }
         .nav-link-custom i { font-size: 24px; margin-bottom: 2px; }
 
-        #safety-toast {
-            position: fixed; top: 20px; left: 50%;
-            transform: translateX(-50%); z-index: 5000;
-            min-width: 300px; display: none;
+        .card { background: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; margin-bottom: 15px; }
+        
+        #upload-btn {
+            position: fixed; bottom: 90px; right: 20px;
+            width: 60px; height: 60px; border-radius: 50%;
+            z-index: 3000; font-size: 24px; box-shadow: 0 0 15px rgba(0,210,255,0.5);
         }
     </style>
 </head>
-<body class="bg-black text-white">
+<body>
 
-    <div id="safety-toast" class="alert alert-danger shadow-lg text-center fw-bold border-2" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i> 9781 HAZARD NEARBY
-    </div>
-
-    <button id="upload-btn" class="btn btn-info text-dark fw-bold shadow" onclick="openContributionMenu()">
-        <i class="fas fa-video"></i>
+    <button id="upload-btn" class="btn btn-info text-dark shadow" onclick="openContributionMenu()">
+        <i class="fas fa-camera"></i>
     </button>
 
     <div id="map-view">
         <div id="cesiumContainer" style="width: 100%; height: 100%;"></div>
     </div>
 
-    <div id="content-view" class="p-3">
-        <div class="container-fluid">
-            <h2 id="view-title" class="mb-4">3D Map</h2>
-            <div id="view-body" class="row g-3"></div>
-        </div>
+    <div id="content-view">
+        <h2 id="view-title" class="text-info border-bottom pb-2 mb-4">Feed</h2>
+        <div id="view-body" class="row"></div>
     </div>
 
     <nav class="bottom-nav">
         <button id="nav-home" class="nav-link-custom active" onclick="navigate('home')">
-            <i class="fas fa-cube"></i><span>Home</span>
+            <i class="fas fa-globe-africa"></i><span>Home</span>
         </button>
         <button id="nav-posts" class="nav-link-custom" onclick="navigate('posts')">
-            <i class="fas fa-layer-group"></i><span>Feed</span>
+            <i class="fas fa-list"></i><span>Posts</span>
         </button>
         <button id="nav-events" class="nav-link-custom" onclick="navigate('events')">
-            <i class="fas fa-calendar-star"></i><span>Events</span>
+            <i class="fas fa-calendar"></i><span>Events</span>
         </button>
         <button id="nav-updates" class="nav-link-custom" onclick="navigate('updates')">
-            <i class="fas fa-bullhorn"></i><span>Updates</span>
+            <i class="fas fa-bell"></i><span>Update</span>
         </button>
         <button id="nav-profile" class="nav-link-custom" onclick="navigate('profile')">
-            <i class="fas fa-user-circle"></i><span>Profile</span>
+            <i class="fas fa-user"></i><span>Profile</span>
         </button>
     </nav>
 
     <script>
         const API_BASE = "http://your-flask-api-server:5000/api";
-        const BOTSHABELO = { lon: 26.7111, lat: -29.2333 };
         let appData = [];
 
-        // --- 1. INITIALIZE CESIUM (FIXED FOR VISIBILITY) ---
+        // --- 1. INITIALIZE CESIUM (UNLOCKED) ---
         const viewer = new Cesium.Viewer('cesiumContainer', {
-            // Use OpenStreetMap to ensure the ground is visible and not "black space"
-            imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-                url : 'https://a.tile.openstreetmap.org/'
-            }),
-            terrainProvider: Cesium.createWorldTerrain(),
-            skyBox: false, // Disables the stars and space background
-            skyAtmosphere: false, // Disables the hazy atmosphere that can look like sky
-            animation: false, 
-            timeline: false, 
-            baseLayerPicker: false,
-            geocoder: false, 
-            infoBox: true,
-            sceneModePicker: false
+            // Using Ion default imagery (requires no token for basic testing)
+            imageryProvider: Cesium.createWorldImagery(),
+            baseLayerPicker: true, // Allow you to change map type if one doesn't load
+            geocoder: true,        // Allow you to search for "Botshabelo" manually
+            homeButton: true,
+            sceneModePicker: true,
+            navigationHelpButton: false,
+            animation: false,
+            timeline: false
         });
 
-        // Background color of the container to prevent seeing "stars"
-        viewer.scene.backgroundColor = Cesium.Color.BLACK;
-
-        // Constraint Zoom: Allow zoom in, limit zoom out to keep town in focus
-        viewer.scene.screenSpaceCameraController.minimumZoomDistance = 150; 
-        viewer.scene.screenSpaceCameraController.maximumZoomDistance = 15000; 
-
-        // Set initial camera to Botshabelo 9781
+        // Start view looking at South Africa
         viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(BOTSHABELO.lon, BOTSHABELO.lat, 2500),
-            orientation: { 
-                heading: Cesium.Math.toRadians(0.0),
-                pitch: Cesium.Math.toRadians(-45.0), // Look down at the town
-                roll: 0.0 
-            }
+            destination: Cesium.Cartesian3.fromDegrees(24.0, -29.0, 5000000.0), // High altitude over SA
+            orientation: { pitch: Cesium.Math.toRadians(-90.0) } // Look straight down
         });
 
-        // --- 2. DYNAMIC PINS ---
+        // --- 2. FULL LOAD PINS FUNCTION ---
         async function loadPins() {
             try {
                 const res = await fetch(`${API_BASE}/posts`);
@@ -162,15 +120,10 @@
                         id: `pin-${item._id}`,
                         position: pos,
                         billboard: {
-                            image: item.type === 'alert' ? 'https://img.icons8.com/color/48/error.png' : 'https://img.icons8.com/color/48/marker.png',
+                            image: 'https://img.icons8.com/color/48/marker.png',
                             width: 32, height: 32, verticalOrigin: Cesium.VerticalOrigin.BOTTOM
                         },
-                        description: `
-                            <div style="background:#000; color:#fff; padding:10px; border-radius:5px; border:1px solid #333;">
-                                <h5 style="color:#00d2ff;">${item.title}</h5>
-                                <p>${item.content}</p>
-                                ${item.media_url ? `<video width="100%" autoplay loop muted class="rounded mt-2"><source src="${item.media_url}"></video>` : ''}
-                            </div>`
+                        description: `<div style="color:black;"><h3>${item.title}</h3><p>${item.content}</p></div>`
                     });
 
                     if (item.type === 'alert' && item.radius) {
@@ -179,22 +132,20 @@
                             ellipse: {
                                 semiMinorAxis: parseFloat(item.radius),
                                 semiMajorAxis: parseFloat(item.radius),
-                                material: Cesium.Color.RED.withAlpha(0.3),
-                                outline: true, outlineColor: Cesium.Color.RED
+                                material: Cesium.Color.RED.withAlpha(0.3)
                             }
                         });
                     }
                 });
-            } catch (err) { console.error("Sync Error", err); }
+            } catch (err) { console.log("API not reached, testing with empty data."); }
         }
 
-        // --- 3. DYNAMIC NAVIGATION ---
+        // --- 3. FULL NAVIGATE FUNCTION ---
         function navigate(tab) {
             const mapView = document.getElementById('map-view');
             const contentView = document.getElementById('content-view');
             const viewTitle = document.getElementById('view-title');
             const viewBody = document.getElementById('view-body');
-            const uploadBtn = document.getElementById('upload-btn');
 
             document.querySelectorAll('.nav-link-custom').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${tab}`).classList.add('active');
@@ -202,13 +153,11 @@
             if (tab === 'home') {
                 mapView.style.display = 'block';
                 contentView.style.display = 'none';
-                uploadBtn.style.display = 'flex';
                 return;
             }
 
             mapView.style.display = 'none';
             contentView.style.display = 'block';
-            uploadBtn.style.display = 'none';
             viewTitle.innerText = tab.toUpperCase();
             viewBody.innerHTML = '';
 
@@ -220,36 +169,17 @@
             });
 
             if (tab === 'profile') {
-                viewBody.innerHTML = `
-                    <div class="col-12 text-center py-4">
-                        <div class="card p-4 shadow">
-                            <i class="fas fa-user-circle fa-5x text-info mb-3"></i>
-                            <h2 class="text-white">Botshabelo Resident</h2>
-                            <p class="text-muted">ID: 9781-User-Live</p>
-                            <button class="btn btn-outline-info w-100">Profile Settings</button>
-                        </div>
-                    </div>`;
+                viewBody.innerHTML = `<div class="col-12"><div class="card p-3"><h4>User Profile</h4><p>Testing Mode Active</p></div></div>`;
                 return;
             }
 
             if (filtered.length === 0) {
-                viewBody.innerHTML = `<div class="col-12 text-center text-muted py-5">No ${tab} in Botshabelo 9781.</div>`;
+                viewBody.innerHTML = `<div class="col-12 text-muted">No entries found for ${tab}.</div>`;
             } else {
                 filtered.forEach(i => {
                     const col = document.createElement('div');
-                    col.className = 'col-12';
-                    col.innerHTML = `
-                        <div class="card mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title">${i.title}</h5>
-                                <p class="card-text">${i.content}</p>
-                                ${i.media_url ? `<video class="w-100 rounded" autoplay loop muted><source src="${i.media_url}"></video>` : ''}
-                                <div class="mt-3 d-flex justify-content-between">
-                                    <span class="badge bg-info text-dark">${i.type}</span>
-                                    <small class="text-muted">${new Date(i.timestamp).toLocaleDateString()}</small>
-                                </div>
-                            </div>
-                        </div>`;
+                    col.className = 'col-12 col-md-6';
+                    col.innerHTML = `<div class="card p-3"><h5>${i.title}</h5><p>${i.content}</p></div>`;
                     viewBody.appendChild(col);
                 });
             }
@@ -260,58 +190,13 @@
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'video/*';
-            input.capture = 'environment';
             input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const fd = new FormData();
-                fd.append('file', file);
-                try {
-                    const cdnRes = await fetch("https://cdn.oxeansa.co.za/upload", { method: 'POST', body: fd });
-                    const cdnData = await cdnRes.json();
-                    if (cdnData.url) {
-                        navigator.geolocation.getCurrentPosition(async (pos) => {
-                            await fetch(`${API_BASE}/posts`, {
-                                method: 'POST',
-                                headers: {'Content-Type': 'application/json'},
-                                body: JSON.stringify({
-                                    title: "Live Street View",
-                                    content: "User uploaded street update",
-                                    lon: pos.coords.longitude, lat: pos.coords.latitude,
-                                    media_url: cdnData.url, type: 'street_view'
-                                })
-                            });
-                            loadPins();
-                            alert("3D Video Contributed!");
-                        });
-                    }
-                } catch (err) { alert("Upload Failed"); }
+                alert("Upload process started. Files would go to cdn.oxeansa.co.za");
             };
             input.click();
         }
 
-        // --- 5. RUN ---
         loadPins();
-
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition(pos => {
-                const toast = document.getElementById('safety-toast');
-                const danger = appData.find(i => {
-                    if (i.type !== 'alert') return false;
-                    const d = calculateDist(pos.coords.longitude, pos.coords.latitude, i.lon, i.lat) * 1000;
-                    return d <= (i.radius || 300);
-                });
-                toast.style.display = danger ? 'block' : 'none';
-            });
-        }
-
-        function calculateDist(lon1, lat1, lon2, lat2) {
-            const R = 6371; 
-            const dLat = (lat2-lat1) * Math.PI/180;
-            const dLon = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        }
     </script>
 </body>
 </html>
