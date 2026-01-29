@@ -124,7 +124,6 @@
                 const tileset = await Cesium.createGooglePhotorealistic3DTileset();
                 viewer.scene.primitives.add(tileset);
                 viewer.camera.setView({
-                    destination: Cesium.Cartesian3.fromDegrees(26.7111, -29.2333, 1500.0),
                     orientation: { pitch: Cesium.Math.toRadians(-35.0) }
                 });
             } catch (error) { console.error("3D Tiles failed:", error); }
