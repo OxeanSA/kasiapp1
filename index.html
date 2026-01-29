@@ -3,57 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SA Community Map | Testing Mode</title>
+    <title>SA Community Map | 9781 3D Mode</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script src="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Cesium.js"></script>
-    <link href="https://cesium.com/downloads/cesiumjs/releases/1.104/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Cesium.js"></script>
+    <link href="https://cesium.com/downloads/cesiumjs/releases/1.110/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #111; overflow: hidden; color: white; }
-        
-        /* Map Container - Gray background shows it's active even if tiles are slow */
-        #map-view {
-            position: absolute; top: 0; left: 0; width: 100%;
-            height: calc(100% - 70px); z-index: 1; background: #222; 
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; background-color: #000; overflow: hidden; color: white; font-family: 'Inter', sans-serif; }
+        #map-view { position: absolute; top: 0; left: 0; width: 100%; height: calc(100% - 70px); z-index: 1; background: #000; }
+
+        /* Custom Search Bar Container */
+        #search-container {
+            position: absolute; top: 10px; right: 10px; z-index: 5000;
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;
+            padding: 5px; width: 250px;
         }
 
         #content-view {
-            position: absolute; top: 0; left: 0; width: 100%;
-            height: calc(100% - 70px); background: #000;
-            z-index: 2000; display: none; overflow-y: auto; padding: 20px;
+            position: absolute; top: 10px; left: 10px; width: 240px;
+            height: auto; max-height: calc(100% - 100px);
+            background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;
+            z-index: 2000; display: none; overflow-y: auto; padding: 12px;
         }
 
         .bottom-nav {
             position: fixed; bottom: 0; width: 100%; height: 70px;
-            background: #000; border-top: 2px solid #333;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(5px);
+            border-top: 1px solid rgba(255,255,255,0.1);
             display: flex; justify-content: space-around;
             align-items: center; z-index: 4000;
         }
 
         .nav-link-custom {
-            color: #999; text-decoration: none; font-size: 11px;
+            color: #666; text-decoration: none; font-size: 9px;
             display: flex; flex-direction: column; align-items: center;
-            border: none; background: none; cursor: pointer;
+            border: none; background: none; cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
         }
 
         .nav-link-custom.active { color: #00d2ff; font-weight: bold; }
-        .nav-link-custom i { font-size: 24px; margin-bottom: 2px; }
+        .nav-link-custom i { font-size: 20px; margin-bottom: 4px; }
 
-        .card { background: #1a1a1a !important; border: 1px solid #333 !important; color: white !important; margin-bottom: 15px; }
+        .card { background: rgba(255, 255, 255, 0.05) !important; border: none !important; border-left: 2px solid #00d2ff !important; color: white !important; margin-bottom: 8px; font-size: 10px; padding: 8px; }
+        #upload-btn { position: fixed; bottom: 85px; right: 20px; width: 50px; height: 50px; border-radius: 50%; z-index: 3000; font-size: 20px; background: #00d2ff; border: none; box-shadow: 0 0 15px rgba(0,210,255,0.3); }
+        #view-title { font-size: 12px; font-weight: 800; color: #00d2ff; margin-bottom: 10px; }
+
+        /* Hide Default Cesium Buttons but Keep Search Functional */
+        .cesium-viewer-bottom, .cesium-viewer-toolbar, .cesium-viewer-animationContainer, 
+        .cesium-viewer-timelineContainer, .cesium-navigation-help-button { display: none !important; }
         
-        #upload-btn {
-            position: fixed; bottom: 90px; right: 20px;
-            width: 60px; height: 60px; border-radius: 50%;
-            z-index: 3000; font-size: 24px; box-shadow: 0 0 15px rgba(0,210,255,0.5);
-        }
+        /* Stylizing the search input specifically */
+        .cesium-geocoder-input { background: transparent !important; color: white !important; border: none !important; font-size: 12px !important; }
+        .cesium-geocoder-searchButton { fill: #00d2ff !important; }
     </style>
 </head>
 <body>
 
-    <button id="upload-btn" class="btn btn-info text-dark shadow" onclick="openContributionMenu()">
+    <div id="search-container"></div> <button id="upload-btn" class="btn text-dark shadow" onclick="openContributionMenu()">
         <i class="fas fa-camera"></i>
     </button>
 
@@ -62,13 +72,13 @@
     </div>
 
     <div id="content-view">
-        <h2 id="view-title" class="text-info border-bottom pb-2 mb-4">Feed</h2>
-        <div id="view-body" class="row"></div>
+        <div id="view-title" class="border-bottom pb-2">Feed</div>
+        <div id="view-body"></div>
     </div>
 
     <nav class="bottom-nav">
         <button id="nav-home" class="nav-link-custom active" onclick="navigate('home')">
-            <i class="fas fa-globe-africa"></i><span>Home</span>
+            <i class="fas fa-globe-africa"></i><span>Map</span>
         </button>
         <button id="nav-posts" class="nav-link-custom" onclick="navigate('posts')">
             <i class="fas fa-list"></i><span>Posts</span>
@@ -77,7 +87,7 @@
             <i class="fas fa-calendar"></i><span>Events</span>
         </button>
         <button id="nav-updates" class="nav-link-custom" onclick="navigate('updates')">
-            <i class="fas fa-bell"></i><span>Update</span>
+            <i class="fas fa-bell"></i><span>Alerts</span>
         </button>
         <button id="nav-profile" class="nav-link-custom" onclick="navigate('profile')">
             <i class="fas fa-user"></i><span>Profile</span>
@@ -85,117 +95,95 @@
     </nav>
 
     <script>
+        Cesium.Ion.defaultAccessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhYzRiNDUxNS0xZjdkLTQ4MTQtOTg3MS01Y2U2M2M4NGIwNWMiLCJpZCI6MzgxNzU1LCJpYXQiOjE3NjkwMDk1NTV9.Fjhxz5Cf5N-MAnCltAPVEkKKd0waDIkbmTjCe0dfzSE";
+        
         const API_BASE = "http://your-flask-api-server:5000/api";
         let appData = [];
 
-        // --- 1. INITIALIZE CESIUM (UNLOCKED) ---
         const viewer = new Cesium.Viewer('cesiumContainer', {
-            // Using Ion default imagery (requires no token for basic testing)
-            imageryProvider: Cesium.createWorldImagery(),
-            baseLayerPicker: true, // Allow you to change map type if one doesn't load
-            geocoder: true,        // Allow you to search for "Botshabelo" manually
-            homeButton: true,
-            sceneModePicker: true,
+            globe: false,
+            baseLayerPicker: false,
+            geocoder: false, // Turned off here to create a custom one below
+            homeButton: false,
+            sceneModePicker: false,
             navigationHelpButton: false,
             animation: false,
-            timeline: false
+            timeline: false,
+            requestRenderMode: true 
         });
 
-        // Start view looking at South Africa
-        viewer.camera.setView({
-            destination: Cesium.Cartesian3.fromDegrees(24.0, -29.0, 5000000.0), // High altitude over SA
-            orientation: { pitch: Cesium.Math.toRadians(-90.0) } // Look straight down
+        // Initialize Custom Search (Geocoder)
+        const geocoder = new Cesium.Geocoder({
+            container: 'search-container',
+            scene: viewer.scene,
+            autoComplete: true
         });
 
-        // --- 2. FULL LOAD PINS FUNCTION ---
+        async function initGoogle3D() {
+            try {
+                const tileset = await Cesium.createGooglePhotorealistic3DTileset();
+                viewer.scene.primitives.add(tileset);
+                viewer.camera.setView({
+                    destination: Cesium.Cartesian3.fromDegrees(26.7111, -29.2333, 1500.0),
+                    orientation: { pitch: Cesium.Math.toRadians(-35.0) }
+                });
+            } catch (error) { console.error("3D Tiles failed:", error); }
+        }
+
         async function loadPins() {
             try {
                 const res = await fetch(`${API_BASE}/posts`);
                 appData = await res.json();
                 viewer.entities.removeAll();
-
                 appData.forEach(item => {
                     const pos = Cesium.Cartesian3.fromDegrees(item.lon, item.lat);
                     viewer.entities.add({
                         id: `pin-${item._id}`,
                         position: pos,
-                        billboard: {
-                            image: 'https://img.icons8.com/color/48/marker.png',
-                            width: 32, height: 32, verticalOrigin: Cesium.VerticalOrigin.BOTTOM
-                        },
+                        billboard: { image: 'https://img.icons8.com/color/48/marker.png', width: 32, height: 32, verticalOrigin: Cesium.VerticalOrigin.BOTTOM },
                         description: `<div style="color:black;"><h3>${item.title}</h3><p>${item.content}</p></div>`
                     });
-
-                    if (item.type === 'alert' && item.radius) {
-                        viewer.entities.add({
-                            position: pos,
-                            ellipse: {
-                                semiMinorAxis: parseFloat(item.radius),
-                                semiMajorAxis: parseFloat(item.radius),
-                                material: Cesium.Color.RED.withAlpha(0.3)
-                            }
-                        });
-                    }
                 });
-            } catch (err) { console.log("API not reached, testing with empty data."); }
+            } catch (err) { console.log("API testing mode."); }
         }
 
-        // --- 3. FULL NAVIGATE FUNCTION ---
         function navigate(tab) {
             const mapView = document.getElementById('map-view');
             const contentView = document.getElementById('content-view');
             const viewTitle = document.getElementById('view-title');
             const viewBody = document.getElementById('view-body');
-
             document.querySelectorAll('.nav-link-custom').forEach(n => n.classList.remove('active'));
             document.getElementById(`nav-${tab}`).classList.add('active');
 
-            if (tab === 'home') {
-                mapView.style.display = 'block';
-                contentView.style.display = 'none';
-                return;
-            }
-
-            mapView.style.display = 'none';
+            if (tab === 'home') { contentView.style.display = 'none'; return; }
             contentView.style.display = 'block';
             viewTitle.innerText = tab.toUpperCase();
             viewBody.innerHTML = '';
-
             const filtered = appData.filter(i => {
                 if (tab === 'posts') return i.type === 'post' || i.type === 'street_view';
                 if (tab === 'events') return i.type === 'event';
                 if (tab === 'updates') return i.type === 'alert';
                 return false;
             });
-
-            if (tab === 'profile') {
-                viewBody.innerHTML = `<div class="col-12"><div class="card p-3"><h4>User Profile</h4><p>Testing Mode Active</p></div></div>`;
-                return;
-            }
-
-            if (filtered.length === 0) {
-                viewBody.innerHTML = `<div class="col-12 text-muted">No entries found for ${tab}.</div>`;
-            } else {
-                filtered.forEach(i => {
-                    const col = document.createElement('div');
-                    col.className = 'col-12 col-md-6';
-                    col.innerHTML = `<div class="card p-3"><h5>${i.title}</h5><p>${i.content}</p></div>`;
-                    viewBody.appendChild(col);
-                });
-            }
+            if (tab === 'profile') { viewBody.innerHTML = `<div class="card"><b>Profile</b> User session active.</div>`; return; }
+            if (filtered.length === 0) { viewBody.innerHTML = `<div class="text-muted" style="font-size:10px;">No entries for ${tab}.</div>`; } 
+            else { filtered.forEach(i => {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<b>${i.title}</b> ${i.content}`;
+                viewBody.appendChild(div);
+            }); }
         }
 
-        // --- 4. CONTRIBUTION ---
         function openContributionMenu() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'video/*';
-            input.onchange = async (e) => {
-                alert("Upload process started. Files would go to cdn.oxeansa.co.za");
-            };
+            input.onchange = (e) => alert("Uploading to cdn.oxeansa.co.za...");
             input.click();
         }
 
+        initGoogle3D();
         loadPins();
     </script>
 </body>
